@@ -8,7 +8,7 @@ int MyEnumProcess(std::string pszProcessName);
 // Main Process
 int main(void)
 {
-	if (MyEnumProcess(" "))
+	if (MyEnumProcess("init"))
 	{
 		std::cout << "Process dclock is running";
 	}
@@ -34,10 +34,10 @@ int MyEnumProcess(std::string pszProcessName)
 	//Run the command line so that it writes its output to a pipe. Open this
 	//pipe with read text attribute so that we can read it
 	//like a text file.
-	if((chkdsk = popen(szCommandline, "rt")) == NULL)
+	if((chkdsk = popen(szCommandline, "r")) == NULL) {
 		std::cout << szCommandline << "didn't work" << std::endl;
-		perror()
 		exit(-1);
+	}
 
 	// Read pipe their should only be one line output from the command line either
 	if(!feof(chkdsk))
