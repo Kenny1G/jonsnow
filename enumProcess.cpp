@@ -6,15 +6,19 @@
 int MyEnumProcess(std::string pszProcessName);
 
 // Main Process
-int main(void)
+int main(int argc, char **argv)
 {
-	if (MyEnumProcess("init"))
+	if (argc != 2) {
+		std::cout << "Usage ./enum process_name" << std::endl;
+		exit(-1);
+	}
+	if (MyEnumProcess(argv[1]))
 	{
-		std::cout << "Process dclock is running";
+		std::cout << "Process " << argv[1] << " is running" << std::endl;
 	}
 	else
 	{
-		std::cout << "Process dclock is not running";
+		std::cout << "Process " << argv[1] << "is not running" << std::endl;
 	}
 }
 
@@ -27,8 +31,10 @@ int MyEnumProcess(std::string pszProcessName)
 	int iRc = 0;
 	FILE *chkdsk;
 
-	// formate your command line expression
-	sprintf(szCommandline, "ps -aux| grep %s", pszProcessName.c_str());
+	// formate your command line expressionA
+	std::string sTemp = pszProcessName.substr(1);
+	char first = pszProcessName.at(0);
+	sprintf(szCommandline, "ps -aux| grep \"[%c]%s\"", first, sTemp.c_str());
 
 
 	//Run the command line so that it writes its output to a pipe. Open this
