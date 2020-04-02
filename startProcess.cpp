@@ -9,6 +9,7 @@
 
 int main(int argc, char** argv)
 {
-	std::string command = "./companion -i companion.cfg &";
+	std::string command = argv[1];
+	command.append("-i companion.cfg &");
 	int a = system(command.c_str());	
 }
