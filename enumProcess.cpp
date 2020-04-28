@@ -3,7 +3,7 @@
  */
 
 #include <iostream>
-#include <string>
+#include <cstring>
 #include <sstream>
 #include <stdio.h>
 #include <vector>
