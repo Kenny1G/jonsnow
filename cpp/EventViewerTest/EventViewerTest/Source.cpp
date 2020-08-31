@@ -1,6 +1,3 @@
-#ifndef _UNICODE
-#define _UNICODE
-#endif
 #include <windows.h>
 #include <sddl.h>
 #include <stdio.h>
@@ -31,7 +28,7 @@ void main(void)
    EVT_HANDLE hResults = NULL;
    LPCWSTR pwsPath = L"Microsoft-Windows-Windows Defender/Operational";
    //LPCWSTR pwsQuery = L"Event/System[EventID=4]";
-   LPCWSTR pwsQuery = L"*";
+   LPCWSTR pwsQuery = L"*[System[(Level = 1 or Level = 2 or Level = 3 or Level = 5)]]";
    
 
    hResults = EvtQuery(NULL, pwsPath, pwsQuery, EvtQueryChannelPath | EvtQueryReverseDirection);
@@ -129,46 +126,105 @@ DWORD PrintEvent(EVT_HANDLE hEvent)
          if (pRenderedContent)
       goto cleanup;
    }
-
-   // The EvtRenderEventXml flag tells EvtRender to render the event as an XML string.
-   if (!EvtRender(NULL, hEvent, EvtRenderEventXml, dwBufferSize, pRenderedContent, &dwBufferUsed, &dwPropertyCount))
+   pwsMessage = GetMessageString(hProviderMetadata, hEvent, EvtFormatMessageEvent);
+   if (pwsMessage)
    {
-      if (ERROR_INSUFFICIENT_BUFFER == (status = GetLastError()))
-      {
-         dwBufferSize = dwBufferUsed;
-         pRenderedContent = (LPWSTR)malloc(dwBufferSize);
-         if (pRenderedContent)
-         {
-            //EvtRender(NULL, hEvent, EvtRenderEventXml, dwBufferSize, pRenderedContent, &dwBufferUsed, &dwPropertyCount);
-            pwsMessage = GetMessageString(hProviderMetadata, hEvent, EvtFormatMessageEvent);
-            if (pwsMessage)
-            {
-               wprintf(L"Event message string: %s\n\n", pwsMessage);
-               free(pwsMessage);
-               pwsMessage = NULL;
-            }
-         }
-         else
-         {
-            wprintf(L"malloc failed\n");
-            status = ERROR_OUTOFMEMORY;
-            goto cleanup;
-         }
-      }
-
-      if (ERROR_SUCCESS != (status = GetLastError()))
-      {
-         wprintf(L"EvtRender failed with %d\n", GetLastError());
-         goto cleanup;
-      }
+      wprintf(L"\n\nEvent message string: %s\n\n", pwsMessage);
+      free(pwsMessage);
+      pwsMessage = NULL;
+   }
+   pwsMessage = GetMessageString(hProviderMetadata, hEvent, EvtFormatMessageLevel);
+   if (pwsMessage)
+   {
+      wprintf(L"Level message string: %s\n\n", pwsMessage);
+      free(pwsMessage);
+      pwsMessage = NULL;
    }
 
-   wprintf(L"\n\n%s", pRenderedContent);
+   pwsMessage = GetMessageString(hProviderMetadata, hEvent, EvtFormatMessageTask);
+   if (pwsMessage)
+   {
+      wprintf(L"Task message string: %s\n\n", pwsMessage);
+      free(pwsMessage);
+      pwsMessage = NULL;
+   }
+
+   pwsMessage = GetMessageString(hProviderMetadata, hEvent, EvtFormatMessageOpcode);
+   if (pwsMessage)
+   {
+      wprintf(L"Opcode message string: %s\n\n", pwsMessage);
+      free(pwsMessage);
+      pwsMessage = NULL;
+   }
+
+   pwsMessage = GetMessageString(hProviderMetadata, hEvent, EvtFormatMessageKeyword);
+   if (pwsMessage)
+   {
+      LPWSTR ptemp = pwsMessage;
+
+      wprintf(L"Keyword message string: %s", ptemp);
+
+      while (*(ptemp += wcslen(ptemp) + 1))
+         wprintf(L", %s", ptemp);
+
+      wprintf(L"\n\n");
+      free(pwsMessage);
+      pwsMessage = NULL;
+   }
+
+   pwsMessage = GetMessageString(hProviderMetadata, hEvent, EvtFormatMessageChannel);
+   if (pwsMessage)
+   {
+      wprintf(L"Channel message string: %s\n\n", pwsMessage);
+      free(pwsMessage);
+      pwsMessage = NULL;
+   }
+
+   pwsMessage = GetMessageString(hProviderMetadata, hEvent, EvtFormatMessageProvider);
+   if (pwsMessage)
+   {
+      wprintf(L"Provider message string: %s\n\n", pwsMessage);
+      free(pwsMessage);
+      pwsMessage = NULL;
+   }
+
+  
+   // The EvtRenderEventXml flag tells EvtRender to render the event as an XML string.
+   //if (!EvtRender(NULL, hEvent, EvtRenderEventXml, dwBufferSize, pRenderedContent, &dwBufferUsed, &dwPropertyCount))
+   //{
+   //   if (ERROR_INSUFFICIENT_BUFFER == (status = GetLastError()))
+   //   {
+   //      dwBufferSize = dwBufferUsed;
+   //      pRenderedContent = (LPWSTR)malloc(dwBufferSize);
+   //      if (pRenderedContent)
+   //      {
+   //         EvtRender(NULL, hEvent, EvtRenderEventXml, dwBufferSize, pRenderedContent, &dwBufferUsed, &dwPropertyCount);
+   //         
+   //      }
+   //      else
+   //      {
+   //         wprintf(L"malloc failed\n");
+   //         status = ERROR_OUTOFMEMORY;
+   //         goto cleanup;
+   //      }
+   //   }
+
+   //   if (ERROR_SUCCESS != (status = GetLastError()))
+   //   {
+   //      wprintf(L"EvtRender failed with %d\n", GetLastError());
+   //      goto cleanup;
+   //   }
+   //}
+
+   //wprintf(L"\n\n%s", pRenderedContent);
 
 cleanup:
 
    if (pRenderedContent)
       free(pRenderedContent);
+
+   if (hProviderMetadata)
+      EvtClose(hProviderMetadata);
 
    return status;
 }
