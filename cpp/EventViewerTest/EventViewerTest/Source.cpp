@@ -2,6 +2,8 @@
 #include <sddl.h>
 #include <stdio.h>
 #include <winevt.h>
+#include <sstream>
+#include "include/xml2json.hpp"
 
 #pragma comment(lib, "wevtapi.lib")
 
@@ -11,6 +13,7 @@
 DWORD PrintResults(EVT_HANDLE hResults);
 DWORD PrintEvent(EVT_HANDLE hEvent); // Shown in the Rendering Events topic
 LPWSTR GetMessageString(EVT_HANDLE hMetadata, EVT_HANDLE hEvent, EVT_FORMAT_MESSAGE_FLAGS FormatId);
+
 
 #define QUERY \
     L"<QueryList>" \
@@ -64,6 +67,7 @@ DWORD PrintResults(EVT_HANDLE hResults)
    DWORD status = ERROR_SUCCESS;
    EVT_HANDLE hEvents[ARRAY_SIZE];
    DWORD dwReturned = 0;
+   //FILE* jsonFile = fopen("C:\ProgramData\BHN\output.json", "w");
 
    while (true)
    {
@@ -78,20 +82,30 @@ DWORD PrintResults(EVT_HANDLE hResults)
          goto cleanup;
       }
 
+      if (ERROR_SUCCESS == (status = PrintEvent(hEvents[0])))
+      {
+         EvtClose(hEvents[0]);
+         hEvents[0] = NULL;
+      }
+      else
+      {
+         goto cleanup;
+      }
+
       // For each event, call the PrintEvent function which renders the
       // event for display. PrintEvent is shown in RenderingEvents.
-      for (DWORD i = 0; i < dwReturned; i++)
-      {
-         if (ERROR_SUCCESS == (status = PrintEvent(hEvents[i])))
-         {
-            EvtClose(hEvents[i]);
-            hEvents[i] = NULL;
-         }
-         else
-         {
-            goto cleanup;
-         }
-      }
+      //for (DWORD i = 0; i < dwReturned; i++)
+      //{
+      //   if (ERROR_SUCCESS == (status = PrintEvent(hEvents[i])))
+      //   {
+      //      EvtClose(hEvents[i]);
+      //      hEvents[i] = NULL;
+      //   }
+      //   else
+      //   {
+      //      goto cleanup;
+      //   }
+      //}
    }
 
 cleanup:
@@ -125,99 +139,26 @@ DWORD PrintEvent(EVT_HANDLE hEvent)
          pRenderedContent = (LPWSTR)malloc(dwBufferSize);
          if (pRenderedContent)
       goto cleanup;
-   }
-   pwsMessage = GetMessageString(hProviderMetadata, hEvent, EvtFormatMessageEvent);
+   } 
+   
+
+   pwsMessage = GetMessageString(hProviderMetadata, hEvent, EvtFormatMessageXml);
+  
    if (pwsMessage)
    {
-      wprintf(L"\n\nEvent message string: %s\n\n", pwsMessage);
-      free(pwsMessage);
-      pwsMessage = NULL;
-   }
-   pwsMessage = GetMessageString(hProviderMetadata, hEvent, EvtFormatMessageLevel);
-   if (pwsMessage)
-   {
-      wprintf(L"Level message string: %s\n\n", pwsMessage);
-      free(pwsMessage);
-      pwsMessage = NULL;
-   }
-
-   pwsMessage = GetMessageString(hProviderMetadata, hEvent, EvtFormatMessageTask);
-   if (pwsMessage)
-   {
-      wprintf(L"Task message string: %s\n\n", pwsMessage);
-      free(pwsMessage);
-      pwsMessage = NULL;
-   }
-
-   pwsMessage = GetMessageString(hProviderMetadata, hEvent, EvtFormatMessageOpcode);
-   if (pwsMessage)
-   {
-      wprintf(L"Opcode message string: %s\n\n", pwsMessage);
-      free(pwsMessage);
-      pwsMessage = NULL;
-   }
-
-   pwsMessage = GetMessageString(hProviderMetadata, hEvent, EvtFormatMessageKeyword);
-   if (pwsMessage)
-   {
-      LPWSTR ptemp = pwsMessage;
-
-      wprintf(L"Keyword message string: %s", ptemp);
-
-      while (*(ptemp += wcslen(ptemp) + 1))
-         wprintf(L", %s", ptemp);
-
-      wprintf(L"\n\n");
-      free(pwsMessage);
-      pwsMessage = NULL;
-   }
-
-   pwsMessage = GetMessageString(hProviderMetadata, hEvent, EvtFormatMessageChannel);
-   if (pwsMessage)
-   {
-      wprintf(L"Channel message string: %s\n\n", pwsMessage);
-      free(pwsMessage);
-      pwsMessage = NULL;
-   }
-
-   pwsMessage = GetMessageString(hProviderMetadata, hEvent, EvtFormatMessageProvider);
-   if (pwsMessage)
-   {
-      wprintf(L"Provider message string: %s\n\n", pwsMessage);
-      free(pwsMessage);
-      pwsMessage = NULL;
+      size_t msgLen = wcslen(pwsMessage);
+      int size_needed = WideCharToMultiByte(CP_UTF8, 0, &pwsMessage[0], msgLen, NULL, 0, NULL, NULL);
+      std::string strTo(size_needed, 0);
+      WideCharToMultiByte(CP_UTF8, 0, &pwsMessage[0], msgLen, &strTo[0], size_needed, NULL, NULL);
+      printf("%s \n\n\n\n", strTo.c_str());
+      std::ostringstream oss;
+      oss.str("");
+      oss << strTo;
+      std::string  json_str = xml2json(oss.str().data());
+      printf("%s \n\n", json_str.c_str());
    }
 
   
-   // The EvtRenderEventXml flag tells EvtRender to render the event as an XML string.
-   //if (!EvtRender(NULL, hEvent, EvtRenderEventXml, dwBufferSize, pRenderedContent, &dwBufferUsed, &dwPropertyCount))
-   //{
-   //   if (ERROR_INSUFFICIENT_BUFFER == (status = GetLastError()))
-   //   {
-   //      dwBufferSize = dwBufferUsed;
-   //      pRenderedContent = (LPWSTR)malloc(dwBufferSize);
-   //      if (pRenderedContent)
-   //      {
-   //         EvtRender(NULL, hEvent, EvtRenderEventXml, dwBufferSize, pRenderedContent, &dwBufferUsed, &dwPropertyCount);
-   //         
-   //      }
-   //      else
-   //      {
-   //         wprintf(L"malloc failed\n");
-   //         status = ERROR_OUTOFMEMORY;
-   //         goto cleanup;
-   //      }
-   //   }
-
-   //   if (ERROR_SUCCESS != (status = GetLastError()))
-   //   {
-   //      wprintf(L"EvtRender failed with %d\n", GetLastError());
-   //      goto cleanup;
-   //   }
-   //}
-
-   //wprintf(L"\n\n%s", pRenderedContent);
-
 cleanup:
 
    if (pRenderedContent)
@@ -278,4 +219,4 @@ LPWSTR GetMessageString(EVT_HANDLE hMetadata, EVT_HANDLE hEvent, EVT_FORMAT_MESS
    }
 
    return pBuffer;
-}
+} 
